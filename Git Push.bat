@@ -1,5 +1,5 @@
 
-REM echo off
+echo off
 
 SET nom_Projet_Git=SteamApp-CoordinatorKinesis-microservice
 SET URL_Projet_Git=https://github.com/maddoudou22/SteamApp-CoordinatorKinesis-microservice.git
@@ -15,5 +15,3 @@ git commit -m "latest push from windows"
 
 echo "Git Push ..."
 git push %URL_Projet_Git%
-
-pause
