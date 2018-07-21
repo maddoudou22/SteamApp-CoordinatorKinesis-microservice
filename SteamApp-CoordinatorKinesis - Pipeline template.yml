@@ -44,7 +44,7 @@ Parameters:
     Description: Token Oauth de GitHub. (A generer et recuperer depuis GitHub dans Settings -> Developer Settings -> Personnal Access Tokens)
     Type: String
 # A supprimer du template !
-    Default: "1b51952c00017d24f79bd873bc827622dfa5ddb6"
+    Default: ""
     
   TemplateName:
     Description: Nom du template CloudFormation pour le deploiement de la stack applicative.
