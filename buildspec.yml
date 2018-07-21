@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - echo Entering build phase...
+      - echo Build started on `date`
+      - cd source
+      - npm install request
+      - cd ..
+      - pip install --upgrade awscli
+      - mv source/index.js .
+      - mv source/node_modules .
+      - mv source/package-lock.json .
+      - rm -rf source buildspec.yml
+      - aws cloudformation package --template steamApp-template.yml --kms-key-id $S3_KEY --s3-bucket $S3_BUCKET --output-template steamApp-template-export.yml
+artifacts:
+  files:
+    - steamApp-template-export.yml
+
