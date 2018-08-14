@@ -96,7 +96,8 @@ Resources:
                 Action: 
                     - kinesis:PutRecord
                     - kinesis:PutRecords
-                Resource: !GetAtt SteamAppStreamFormation.Arn
+                Resource: "*"
+              #  Resource: !GetAtt SteamAppStreamFormation.Arn
               # Autorisation de creer des logs dans CloudWatch :
               - Effect: "Allow"
                 Action: 
