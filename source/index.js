@@ -120,7 +120,7 @@ function requestProductPrice(IDproduit, kinesisStream, xray_trace_id, callback) 
             console.error(err);
         }
         else {
-            console.log('Message envoyé au stream : ', recordData);
+            //console.log('Message envoyé au stream : ', recordData);
             callback (recordData);
         }
     });
