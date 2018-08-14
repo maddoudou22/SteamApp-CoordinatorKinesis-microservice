@@ -85,9 +85,9 @@ function requestProductPrice(IDproduit, kinesisStream, xray_trace_id, callback) 
 		console.log("sqs XRAY : ", JSON.stringify(AWSXRay.getSegment()));
 		console.log("xray_subsegment_temp : " + xray_subsegment_temp);
 		try{
-// Lors du premier appel de SQS, le 'subsegment' SQS automatiquement invoqué par X-Ray est toujours 'undefined' (bug X-Ray ?). D'où l'utilisation d'un 'try-catch' pour ne pas planter l'exécution de Lambda quand ça arrive.
-			// Par contre les appel suivants (s'il y a plusieurs applications) arrivent bien à récupérer les infos du subsegment de SQS.
-			// NOTE : ça implique que si la liste ne contient qu'une seule application, SQS et la fonction Lambda recevant le message ne sont jamais connectés dans le service map de X-ray !
+// Lors du premier appel de Kinesis, le 'subsegment' Kinesis automatiquement invoqué par X-Ray est toujours 'undefined' (bug X-Ray ?). D'où l'utilisation d'un 'try-catch' pour ne pas planter l'exécution de Lambda quand ça arrive.
+			// Par contre les appel suivants (s'il y a plusieurs applications) arrivent bien à récupérer les infos du subsegment de Kinesis.
+			// NOTE : ça implique que si la liste ne contient qu'une seule application, Kinesis et la fonction Lambda recevant le message ne sont jamais connectés dans le service map de X-ray !
 			console.log("parse : " + xray_subsegment_temp.subsegments[xray_subsegment_temp.subsegments.length - 1].id);
 			// 'xray_subsegment_id' sera récupéré par la fonction lambda recevant le message de SQS afin de l'utiliser comme 'Parent_ID' et assurer la traçabilité avec SQS dans le service map de X-ray :
 			// Note qu'ici on utilise le dernier subsegment de la liste : pas très fiable pour la traçabilité, mais difficile de faire mieux tant que SQS n'est pas totalement compatible avec X-Ray 
@@ -120,7 +120,7 @@ function requestProductPrice(IDproduit, kinesisStream, xray_trace_id, callback) 
             console.error(err);
         }
         else {
-            //console.log('Message envoyé au stream : ', recordData);
+            console.log('Message envoyé au stream : ', recordData);
             callback (recordData);
         }
     });
