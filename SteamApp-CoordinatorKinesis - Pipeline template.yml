@@ -55,6 +55,39 @@ Resources:
 
 
 #------------------------------------------------------------------------------------------------------------
+#- Creation du Bucket S3 hebergeant les artefacts compiles et templates du microservice ---------------------
+#------------------------------------------------------------------------------------------------------------
+
+  # Creation du bucket lui-meme :
+  ArtefactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref bucketS3
+      AccessControl: Private
+      
+      
+  # Policy associee au bucket :
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref bucketS3
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - s3:*
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:s3:::${bucketS3}
+              - !Sub arn:aws:s3:::${bucketS3}/*
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+                - codebuild.amazonaws.com
+               
+
+
+#------------------------------------------------------------------------------------------------------------
 #- Role CloudFormation pour le cycle de vie du ChangeSet ----------------------------------------------------
 #------------------------------------------------------------------------------------------------------------
 
