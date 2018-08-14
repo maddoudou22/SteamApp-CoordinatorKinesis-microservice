@@ -16,8 +16,8 @@ exports.handler = (event, context, callback) => {
         subsegment.addAnnotation('traceGlobale', `Evolution_Prix_Depuis_Lambda`);
         subsegment.addMetadata('metaGlobale', `Evolution_Prix_Depuis_Lambda`);
     
-		const KinesisStream = process.env.KINESIS_STREAM_NAME; // Recuperation de l'URL de la Queue SQS dédiée à la transmission d'ID d'applications Steam depuis les variables d'environnement
-		const URLsteamApplicationList = process.env.URLsteamApplicationList; // 'https://80q3vt1db6.execute-api.eu-west-1.amazonaws.com/Dev/SteamApplicationList-Workstation'; // Recuperation de l'URL de la fonction Lambda traitant la demande de liste d'application (via API Gateway) depuis les variables d'environnement
+		const KinesisStream = process.env.KINESIS_STREAM_NAME; // Recuperation de l'URL du stream Kinesis dédié à la transmission d'ID d'applications Steam depuis les variables d'environnement
+		const URLsteamApplicationList = process.env.APPLICATION_LIST_URL; // 'https://80q3vt1db6.execute-api.eu-west-1.amazonaws.com/Dev/SteamApplicationList-Workstation'; // Recuperation de l'URL de la fonction Lambda traitant la demande de liste d'application (via API Gateway) depuis les variables d'environnement
 
 		// Récuperation de la liste des produits à vérifer :
 		getSteamApplicationList(URLsteamApplicationList, function(responseFromTargetFunction){

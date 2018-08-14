@@ -64,7 +64,7 @@ exports.handler = (event, context, callback) => {
             if (responseBody.trim() == stringTestExpected.trim()) resultatFinal = 'Succeeded';
 
 			// else resultatFinal = 'Failed';
-// TODO : pour un premier deploiement on considere que le test est toujours OK. A voir comment realiser un test personalise pour chaque microservice plus tard ...
+// TODO : pour le moment on considere que le test est toujours OK. A voir comment realiser un test personalise en simulant une invocation Kinesis ...
 			else resultatFinal = 'Succeeded';
 
             creeAlarmeCloudwatch(cloudwatch, cloudformationAlarm, targetFunctionName, aliasName, versionToTest, function(responseAlarmCreation){

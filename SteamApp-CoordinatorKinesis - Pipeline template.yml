@@ -43,13 +43,12 @@ Parameters:
   GitHubOAuthToken:
     Description: Token Oauth de GitHub. (A generer et recuperer depuis GitHub dans Settings -> Developer Settings -> Personnal Access Tokens)
     Type: String
-# A supprimer du template !
     Default: ""
     
   TemplateName:
     Description: Nom du template CloudFormation pour le deploiement de la stack applicative.
     Type: String
-    Default: "steamApp-template-export.yml"
+    Default: "steamApp-coordinatorKinesis-template-export.yml"
     
     
 Resources:
@@ -156,6 +155,7 @@ Resources:
                 Action:
                  - cloudwatch:PutMetricAlarm
                  - cloudwatch:DeleteAlarms
+                 - cloudwatch:DescribeAlarms
                 # Supprimer ID du compte !
                 Resource: "*"
 
