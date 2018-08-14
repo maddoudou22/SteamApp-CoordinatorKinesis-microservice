@@ -2,10 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
 Description: deploiement de l'application Steam Check Price Evolution
-    # - Role 'SteamApp-coordinator-role-formation' : role porte par la fonction 'SteamApp-coordinator-lambda-formation' pour lui donner les droits suivants :
+    # - Role 'SteamApp-coordinatorKinesis-role-formation' : role porte par la fonction 'SteamApp-coordinatorKinesis-lambda-formation' pour lui donner les droits suivants :
     #   - Accès total à CloudWatch
-    #   - Publication de messages dans la file SQS
-    # - Fonction Lambda 'SteamApp-coordinator-lambda-formation' : point d'entree de l'application :
+    #   - Publication de messages dans le stream Kinesis
+    # - Fonction Lambda 'SteamApp-coordinatorKinesis-lambda-formation' : point d'entree de l'application :
     #   1) Recupere la liste des applications steam aupres de la fonction 'SteamApp-applicationList-formation' via son API Gateway
     #   2) Envoie un message a SQS pour chaque application.
     # - Table DynamoDB 'SteamApp-table-formation' : liste l'ensemble des applications Steams pour lesquelles on souhaite verifier le prix
@@ -68,10 +68,10 @@ Resources:
 #---- Microservice de coordination (point d'entree) -----------------------------------------------------------------------------
 #--------------------------------------------------------------------------------------------------------------------------------
  
-  # Role 'SteamApp-coordinator-role-formation' : role porte par la fonction 'SteamApp-coordinator-lambda-formation' pour lui donner les droits suivants :
+  # Role 'SteamApp-coordinatorKinesis-role-formation' : role porte par la fonction 'SteamApp-coordinatorKinesis-lambda-formation' pour lui donner les droits suivants :
   #   - Acces total à CloudWatch
   #   - Publication de messages dans le stream Kinesis
-  SteamAppCoordinatorRoleFormation: 
+  SteamAppCoordinatorKinesisRoleFormation: 
     Type: "AWS::IAM::Role"
     Properties: 
       AssumeRolePolicyDocument: 
@@ -87,7 +87,7 @@ Resources:
       Path: "/"
       Policies: 
         - 
-          PolicyName: "SteamApp-coordinator-Policy-formation"
+          PolicyName: "SteamApp-coordinatorKinesis-Policy-formation"
           PolicyDocument: 
             Version: "2012-10-17"
             Statement: 
@@ -105,15 +105,15 @@ Resources:
                     - logs:PutLogEvents
                 Resource: "*"
 
-  # Fonction Lambda 'SteamApp-coordinator-lambda-formation' : point d'entree de l'application :
+  # Fonction Lambda 'SteamApp-coordinatorKinesis-lambda-formation' : point d'entree de l'application :
   #   1) Recupere la liste des applications steam aupres de la fonction 'SteamApp-applicationList-formation' via son API Gateway
   #   2) Envoie un message dans le stream Kinesis pour chaque application.
-  SteamAppCoordinatorLambdaFormation:
+  SteamAppCoordinatorKinesisLambdaFormation:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: 'SteamApp-coordinator-lambda-formation'
+      FunctionName: 'SteamApp-coordinatorKinesis-lambda-formation'
       Handler: index.handler
-      Role: !GetAtt SteamAppCoordinatorRoleFormation.Arn
+      Role: !GetAtt SteamAppCoordinatorKinesisRoleFormation.Arn
       Runtime: nodejs8.10
       Timeout: 6
       #CodeUri: S3://steamappformation/steamCoordinatorKinesis-Workstation.zip  // Le parametre 'CodeUri' ne doit pas etre utilise avec CodePipeline : il est genere automatiquement par CodeBuild
@@ -136,7 +136,7 @@ Resources:
           APPLICATION_LIST_URL: !Ref applicationListUrl
 
           
-  # Fonction Lambda 'CodeDeployHook_steamApp_coordinator_preTrafficHook' appellee par CodeDeploy a chaque mise a jour de la stack (donc a chaque push dans GitHub) pour executer un test sur la fonction 'SteamApp-coordinator-lambda-formation' qui vient d'etre deployee avant de basculer le trafic utilisateur sur cette derniere. 
+  # Fonction Lambda 'CodeDeployHook_steamApp_coordinatorKinesis_preTrafficHook' appellee par CodeDeploy a chaque mise a jour de la stack (donc a chaque push dans GitHub) pour executer un test sur la fonction 'SteamApp-coordinatorKinesis-lambda-formation' qui vient d'etre deployee avant de basculer le trafic utilisateur sur cette derniere. 
   deploiementSteamAppPreTrafficHook:
     Type: AWS::Serverless::Function
     Properties:
@@ -152,11 +152,11 @@ Resources:
               !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${ServerlessDeploymentApplication}/*'
         - Version: "2012-10-17"
           Statement:
-          # Attribution du droit d'invoquer la fonction 'SteamApp-coordinator-lambda-formation' pour executer le test :
+          # Attribution du droit d'invoquer la fonction 'SteamApp-coordinatorKinesis-lambda-formation' pour executer le test :
           - Effect: "Allow"
             Action:
               - "lambda:InvokeFunction"
-            Resource: !Ref SteamAppCoordinatorLambdaFormation.Version
+            Resource: !Ref SteamAppCoordinatorKinesisLambdaFormation.Version
         - Version: "2012-10-17"
           Statement:
           - Effect: "Allow"
@@ -164,12 +164,12 @@ Resources:
               - "cloudwatch:PutMetricAlarm"
             Resource: "*"
       Runtime: nodejs6.10
-      FunctionName: 'CodeDeployHook_steamApp_coordinator_preTrafficHook' #Pour creer un Hook, CodeDeploy cree automatiquement un role qui ne peut executer des fonctions de Hook dont le nom  commence par 'CodeDeployHook_*' uniquement
+      FunctionName: 'CodeDeployHook_steamApp_coordinatorKinesis_preTrafficHook' #Pour creer un Hook, CodeDeploy cree automatiquement un role qui ne peut executer des fonctions de Hook dont le nom  commence par 'CodeDeployHook_*' uniquement
       DeploymentPreference:
         Enabled: false
       Environment:
         Variables:
-          CurrentVersion: !Ref SteamAppCoordinatorLambdaFormation.Version
+          CurrentVersion: !Ref SteamAppCoordinatorKinesisLambdaFormation.Version
           aliasName: !Ref aliasName
           fileTestInput: !Ref fileTestInput
           fileTestExpected: !Ref fileTestExpected
@@ -182,8 +182,8 @@ Resources:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
 # A voir si la creation d'un nom + description d'alarme fonctionnent :
-      AlarmName: "steamApp_coordinator_deploiment_alarm"
-      AlarmDescription: "Alerte sur le nombre d'erreurs remontees lors du deploiement de la nouvelle version du microservice steamApp-coordinator"
+      AlarmName: "steamApp_coordinatorKinesis_deploiment_alarm"
+      AlarmDescription: "Alerte sur le nombre d'erreurs remontees lors du deploiement de la nouvelle version du microservice steamApp-coordinatorKinesis"
       MetricName: Errors
       Namespace: AWS/Lambda
       Statistic: Sum

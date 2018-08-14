@@ -16,7 +16,7 @@ Parameters:
     Description: "Bucket contenant les artefacts des services pour leur integration et leur deploiement (codes source et templates des ChangeSet des services)."
     Type: 'String'
     Default: "steamapp.coordinator.kinesis.microservice"
-    AllowedPattern: '[a-z0-9]+'
+    AllowedPattern: '[a-z0-9\\.]+'
 
   # TODO : generer automatiquement une nouvelle cle de chiffrement
   EncryptionKeyARN:
