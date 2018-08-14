@@ -1,0 +1,205 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: deploiement de l'application Steam Check Price Evolution
+    # - Role 'SteamApp-coordinatorKinesis-role-formation' : role porte par la fonction 'SteamApp-coordinatorKinesis-lambda-formation' pour lui donner les droits suivants :
+    #   - Accès total à CloudWatch
+    #   - Publication de messages dans le stream Kinesis
+    # - Fonction Lambda 'SteamApp-coordinatorKinesis-lambda-formation' : point d'entree de l'application :
+    #   1) Recupere la liste des applications steam aupres de la fonction 'SteamApp-applicationList-formation' via son API Gateway
+    #   2) Envoie un message a SQS pour chaque application.
+    # - Table DynamoDB 'SteamApp-table-formation' : liste l'ensemble des applications Steams pour lesquelles on souhaite verifier le prix
+    # - API Gateway 'SteamApp-applicationList-APIG-formation' : trigger de la fonction 'SteamApp-applicationList-formation'
+    # - Role 'SteamApp-applicationList-role-formation' : role porte par la fonction 'SteamApp-applicationList-lambda-formation' pour lui donner les droits suivants :
+    #   - Accès total à CloudWatch
+    #   - Scan de la table DynamoDB
+    # - Fonction Lambda 'SteamApp-applicationList-lambda-formation' : invoquee via l'API Gateway et renvoyant la liste des applications depuis la table DynamoDB
+    # - File de message SQS 'SteamApp-SQSqueue-formation' : transmet les messages contenant les identifiants de chaque application Steam pour la fonction 'steamCheckPriceSQS-formation' 
+    # - Role 'SteamApp-checkPrice-role-formation' : role porte par la fonction 'SteamApp-checkPrice-lambda-formation' pour lui donner les droits suivants :
+    #   - Accès total à CloudWatch
+    #   - Recuperation de messages dans SQS
+    #   - Publication de SMS via SNS
+    # - Fonction Lambda 'SteamApp-checkPrice-lambda-formation' : declenchee par la file SQS :
+    #   1) Recupere l'ID de l'application a verifier depuis le message SQS
+    #   2) Recupere le detail des informations de l'application via une requete aupres de l'API Steam
+    #   3) Verifie si le prix a evolue ou non
+    #   4) Publie un SMS via SNS si le prix a ete revu a la baisse
+    # - Topic SNS 'SteamApp-SNStopic-formation' : topic appelle par la fonction Lambda 'SteamApp-checkPrice-lambda-formation' pour publier un SMS
+    # - Souscription SNS 'SteamApp-SNSsubscription-formation' : enregistre le numero de telephone vers lequel le SMS doit etre envoye
+    
+    
+Parameters:
+  applicationListUrl:
+    Description: "URL du microservice 'steamApp-applicationList' utilise pour recuperer la liste des applications a verifier"
+    Type: 'String'
+# Doit etre renseigne manuellement dans ce template :
+    Default: "https://pwd0g6o0ri.execute-api.eu-west-1.amazonaws.com/dev"
+
+  kinesisStreamName:
+    Description: "Nom du stream Kinesis utilise pour publier les applications pour lesquelles le prix doit etre verifie"
+    Type: 'String'
+# Doit etre renseigne manuellement dans ce template :
+    Default: "steamApp-stream"
+    
+    
+  aliasName: #environnement
+    Description: "Environnement de déploiement"
+    Type: 'String'
+    Default: "dev"
+
+  deploymentType:
+    Description: "Modalite de deploiement pour la fonction"
+    Type: 'String'
+    Default: "AllAtOnce"
+
+  fileTestInput:
+    Description: "Fichier contenant le corps de la requete passee a la fonction Lambda pour son test"
+    Type: 'String'
+    Default: "test-input.json"
+
+  fileTestExpected:
+    Description: "Fichier contenant la chaine de ccaracteres attendue pour valider le test"
+    Type: 'String'
+    Default: "test-expectedResult.json"
+    
+Resources:
+                
+#--------------------------------------------------------------------------------------------------------------------------------
+#---- Microservice de coordination (point d'entree) -----------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------
+ 
+  # Role 'SteamApp-coordinatorKinesis-role-formation' : role porte par la fonction 'SteamApp-coordinatorKinesis-lambda-formation' pour lui donner les droits suivants :
+  #   - Acces total à CloudWatch
+  #   - Publication de messages dans le stream Kinesis
+  SteamAppCoordinatorKinesisRoleFormation: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          #
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: 
+                - "sts:AssumeRole"
+      Path: "/"
+      Policies: 
+        - 
+          PolicyName: "SteamApp-coordinatorKinesis-Policy-formation"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              # Autorisation de pousser des messages dans Kinesis :
+              - Effect: "Allow"
+                Action: 
+                    - kinesis:PutRecord
+                    - kinesis:PutRecords
+                Resource: !GetAtt SteamAppStreamFormation.Arn
+              # Autorisation de creer des logs dans CloudWatch :
+              - Effect: "Allow"
+                Action: 
+                    - logs:CreateLogGroup
+                    - logs:CreateLogStream
+                    - logs:PutLogEvents
+                Resource: "*"
+
+  # Fonction Lambda 'SteamApp-coordinatorKinesis-lambda-formation' : point d'entree de l'application :
+  #   1) Recupere la liste des applications steam aupres de la fonction 'SteamApp-applicationList-formation' via son API Gateway
+  #   2) Envoie un message dans le stream Kinesis pour chaque application.
+  SteamAppCoordinatorKinesisLambdaFormation:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: 'SteamApp-coordinatorKinesis-lambda-formation'
+      Handler: index.handler
+      Role: !GetAtt SteamAppCoordinatorKinesisRoleFormation.Arn
+      Runtime: nodejs8.10
+      Timeout: 6
+      #CodeUri: S3://steamappformation/steamCoordinatorKinesis-Workstation.zip  // Le parametre 'CodeUri' ne doit pas etre utilise avec CodePipeline : il est genere automatiquement par CodeBuild
+      # X-Ray doit être activé manuellement via le paramètre 'ActiveTracing' dans la console de chaque fonction Lambda
+      #TracingConfig: # Activation de X-ray : supporté pour "AWS::Lambda::Function" mais pas "AWS::Serverless::Function". "AWS::Lambda::Function" n'intègre pas aussi bien les API gateway
+      #  Mode: "Active"
+        
+      # Definition des modalites de deploiement de la fonction :
+      AutoPublishAlias: !Ref aliasName
+      DeploymentPreference:
+        Type: !Ref deploymentType
+        Alarms:
+         - !Ref LambdaErrorAlarm
+        Hooks:
+            PreTraffic: !Ref deploiementSteamAppPreTrafficHook
+            
+      Environment:
+        Variables:
+          KINESIS_STREAM_NAME: !Ref kinesisStreamName
+          APPLICATION_LIST_URL: !Ref applicationListUrl
+
+          
+  # Fonction Lambda 'CodeDeployHook_steamApp_coordinatorKinesis_preTrafficHook' appellee par CodeDeploy a chaque mise a jour de la stack (donc a chaque push dans GitHub) pour executer un test sur la fonction 'SteamApp-coordinatorKinesis-lambda-formation' qui vient d'etre deployee avant de basculer le trafic utilisateur sur cette derniere. 
+  deploiementSteamAppPreTrafficHook:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: deploiementSteamAppTrafficHook.handler
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+          # Attribution du droit d'invoquer les 'EventHook' de codeDeploy pour lui remonter le resultat du test :
+          - Effect: "Allow"
+            Action:
+              - "codedeploy:PutLifecycleEventHookExecutionStatus"
+            Resource:
+              !Sub 'arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${ServerlessDeploymentApplication}/*'
+        - Version: "2012-10-17"
+          Statement:
+          # Attribution du droit d'invoquer la fonction 'SteamApp-coordinatorKinesis-lambda-formation' pour executer le test :
+          - Effect: "Allow"
+            Action:
+              - "lambda:InvokeFunction"
+            Resource: !Ref SteamAppCoordinatorKinesisLambdaFormation.Version
+        - Version: "2012-10-17"
+          Statement:
+          - Effect: "Allow"
+            Action:
+              - "cloudwatch:PutMetricAlarm"
+            Resource: "*"
+      Runtime: nodejs6.10
+      FunctionName: 'CodeDeployHook_steamApp_coordinatorKinesis_preTrafficHook' #Pour creer un Hook, CodeDeploy cree automatiquement un role qui ne peut executer des fonctions de Hook dont le nom  commence par 'CodeDeployHook_*' uniquement
+      DeploymentPreference:
+        Enabled: false
+      Environment:
+        Variables:
+          CurrentVersion: !Ref SteamAppCoordinatorKinesisLambdaFormation.Version
+          aliasName: !Ref aliasName
+          fileTestInput: !Ref fileTestInput
+          fileTestExpected: !Ref fileTestExpected
+          cloudformationAlarm: !Ref LambdaErrorAlarm
+
+          
+  # Creation d'une alarme permettant de verifier le nombre d'erreurs lors du deploiement de cette fonction par CodeDeploy.
+  # Si le nombre d'erreurs atteind 10 durant le deploiement, celui-ce est annule (rollback par CodeDeploy)
+  LambdaErrorAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+# A voir si la creation d'un nom + description d'alarme fonctionnent :
+      AlarmName: "steamApp_coordinatorKinesis_deploiment_alarm"
+      AlarmDescription: "Alerte sur le nombre d'erreurs remontees lors du deploiement de la nouvelle version du microservice steamApp-coordinatorKinesis"
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Unit: Count
+      Period: '60'
+      EvaluationPeriods: '1'
+      Threshold: '10'
+      ComparisonOperator: GreaterThanThreshold
+      # A voir l'utilite de la Dimension...
+      Dimensions:
+      - Name: FunctionName
+        Value: "TempName"
+
+
+ 
+
+#--------------------------------------------------------------------------------------------------------------------------------
+#---- Outputs -------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------
