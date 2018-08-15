@@ -1,32 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 
-Description: deploiement de l'application Steam Check Price Evolution
+Description: deploiement de l'application Steam Check Price Evolution - Microservice "coordinator"
     # - Role 'SteamApp-coordinatorKinesis-role-formation' : role porte par la fonction 'SteamApp-coordinatorKinesis-lambda-formation' pour lui donner les droits suivants :
     #   - Accès total à CloudWatch
     #   - Publication de messages dans le stream Kinesis
     # - Fonction Lambda 'SteamApp-coordinatorKinesis-lambda-formation' : point d'entree de l'application :
     #   1) Recupere la liste des applications steam aupres de la fonction 'SteamApp-applicationList-formation' via son API Gateway
     #   2) Envoie un message a SQS pour chaque application.
-    # - Table DynamoDB 'SteamApp-table-formation' : liste l'ensemble des applications Steams pour lesquelles on souhaite verifier le prix
-    # - API Gateway 'SteamApp-applicationList-APIG-formation' : trigger de la fonction 'SteamApp-applicationList-formation'
-    # - Role 'SteamApp-applicationList-role-formation' : role porte par la fonction 'SteamApp-applicationList-lambda-formation' pour lui donner les droits suivants :
-    #   - Accès total à CloudWatch
-    #   - Scan de la table DynamoDB
-    # - Fonction Lambda 'SteamApp-applicationList-lambda-formation' : invoquee via l'API Gateway et renvoyant la liste des applications depuis la table DynamoDB
-    # - File de message SQS 'SteamApp-SQSqueue-formation' : transmet les messages contenant les identifiants de chaque application Steam pour la fonction 'steamCheckPriceSQS-formation' 
-    # - Role 'SteamApp-checkPrice-role-formation' : role porte par la fonction 'SteamApp-checkPrice-lambda-formation' pour lui donner les droits suivants :
-    #   - Accès total à CloudWatch
-    #   - Recuperation de messages dans SQS
-    #   - Publication de SMS via SNS
-    # - Fonction Lambda 'SteamApp-checkPrice-lambda-formation' : declenchee par la file SQS :
-    #   1) Recupere l'ID de l'application a verifier depuis le message SQS
-    #   2) Recupere le detail des informations de l'application via une requete aupres de l'API Steam
-    #   3) Verifie si le prix a evolue ou non
-    #   4) Publie un SMS via SNS si le prix a ete revu a la baisse
-    # - Topic SNS 'SteamApp-SNStopic-formation' : topic appelle par la fonction Lambda 'SteamApp-checkPrice-lambda-formation' pour publier un SMS
-    # - Souscription SNS 'SteamApp-SNSsubscription-formation' : enregistre le numero de telephone vers lequel le SMS doit etre envoye
-    
+
     
 Parameters:
   applicationListUrl:
