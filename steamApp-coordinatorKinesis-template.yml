@@ -147,7 +147,7 @@ Resources:
                   - ':'
                   - !Ref 'AWS::AccountId'
                   - ':function:'
-                  - !GetAtt SteamAppCoordinatorKinesisLambdaFormation.Name
+                  - !GetAtt SteamAppCoordinatorKinesisLambdaFormation.FunctionName
                   - ':*'
             #   !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:!Ref SteamAppCoordinatorKinesisLambdaFormation.Name:*
             # Le filtrage suivant est plus précis (uniquement sur la version en cours), mais mène parfois à des erreurs de droits malgré la bonne configuration des policies du à des problèmes de timing entre l'application de la policy (plusieurs minutes) et l'exécution du hook.
