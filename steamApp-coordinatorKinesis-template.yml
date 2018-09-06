@@ -15,7 +15,7 @@ Parameters:
     Description: "URL du microservice 'steamApp-applicationList' utilise pour recuperer la liste des applications a verifier"
     Type: 'String'
 # Doit etre renseigne manuellement dans ce template :
-    Default: "https://pwd0g6o0ri.execute-api.eu-west-1.amazonaws.com/dev"
+    Default: "https://j61tp2bdgd.execute-api.eu-west-1.amazonaws.com/dev"
 
   kinesisStreamName:
     Description: "Nom du stream Kinesis utilise pour publier les applications pour lesquelles le prix doit etre verifie"
@@ -149,7 +149,6 @@ Resources:
                   - ':function:'
                   - !Ref SteamAppCoordinatorKinesisLambdaFormation
                   - ':*'
-            #   !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:!Ref SteamAppCoordinatorKinesisLambdaFormation.Name:*
             # Le filtrage suivant est plus précis (uniquement sur la version en cours), mais mène parfois à des erreurs de droits malgré la bonne configuration des policies du à des problèmes de timing entre l'application de la policy (plusieurs minutes) et l'exécution du hook.
             #Resource: !Ref SteamAppCoordinatorKinesisLambdaFormation.Version
         - Version: "2012-10-17"
