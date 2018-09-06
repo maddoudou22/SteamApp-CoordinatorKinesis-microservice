@@ -139,7 +139,18 @@ Resources:
           - Effect: "Allow"
             Action:
               - "lambda:InvokeFunction"
-            Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:!Ref SteamAppCoordinatorKinesisLambdaFormation.Name:*
+            Resource: 
+              - !Join
+                - ''
+                - - 'arn:aws:lambda:'
+                  - !Ref 'AWS::Region'
+                  - ':'
+                  - !Ref 'AWS::AccountId'
+                  - ':function:'
+                  - !Ref SteamAppCoordinatorKinesisLambdaFormation.Name
+                  - ':*'
+
+             #   !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:!Ref SteamAppCoordinatorKinesisLambdaFormation.Name:*
             # Le filtrage suivant est plus précis (uniquement sur la version en cours), mais mène parfois à des erreurs de droits malgré la bonne configuration des policies (problème de timing entre l'application de la policy et l'exécution du hook ?)
             #Resource: !Ref SteamAppCoordinatorKinesisLambdaFormation.Version
         - Version: "2012-10-17"
