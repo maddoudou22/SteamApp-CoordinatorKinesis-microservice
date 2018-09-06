@@ -1,5 +1,5 @@
 
-// Note : cette fonction doit être exécutée manuellement via la console AWS-Lambda
+// Note : cette fonction doit être exécutée manuellement via la console Lambda d'AWS
 
 const AWSXRay = require('aws-xray-sdk');
 const AWS = require('aws-sdk');
