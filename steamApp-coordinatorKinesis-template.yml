@@ -15,7 +15,7 @@ Parameters:
     Description: "URL du microservice 'steamApp-applicationList' utilise pour recuperer la liste des applications a verifier"
     Type: 'String'
 # Doit etre renseigne manuellement dans ce template :
-    Default: "https://j61tp2bdgd.execute-api.eu-west-1.amazonaws.com/dev"
+    Default: "https://r7j42s1144.execute-api.eu-west-1.amazonaws.com/dev"
 
   kinesisStreamName:
     Description: "Nom du stream Kinesis utilise pour publier les applications pour lesquelles le prix doit etre verifie"
